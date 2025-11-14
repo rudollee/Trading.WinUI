@@ -12,5 +12,6 @@ public partial class DecimalToStringConverter : IValueConverter
 		return decimalNumber.ToString($"N{scale}");
 	}
 
-	public object ConvertBack(object value, Type targetType, object parameter, string language) => throw new NotImplementedException();
+	public object ConvertBack(object value, Type targetType, object parameter, string language) => 
+		value is null ? 0 : decimal.TryParse(value.ToString(), out decimal decimalNumber) ? (object)decimalNumber : 0;
 }
