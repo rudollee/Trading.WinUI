@@ -9,6 +9,7 @@
 
 	<Style x:Key="TextBase" TargetType="TextBlock" >
 		<Setter Property="Foreground" Value="{ThemeResource TextBaseColor}" />
+		<Setter Property="FontFamily" Value="verdana" />
 		<Setter Property="VerticalAlignment" Value="Center" />
 		<Setter Property="HorizontalAlignment" Value="Left" />
 		<Setter Property="HorizontalTextAlignment" Value="Left" />
@@ -28,7 +29,6 @@
 	<Style x:Key="TextRight" TargetType="TextBlock" BasedOn="{StaticResource TextBase}" >
 		<Setter Property="HorizontalAlignment" Value="Right" />
 		<Setter Property="HorizontalTextAlignment" Value="Right" />
-		<Setter Property="FontFamily" Value="verdana" />
 	</Style>
 	<Style x:Key="TextCenter" TargetType="TextBlock" BasedOn="{StaticResource TextBase}" >
 		<Setter Property="HorizontalAlignment" Value="Center" />
