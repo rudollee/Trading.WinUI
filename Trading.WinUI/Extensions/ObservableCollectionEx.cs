@@ -16,11 +16,13 @@ public class ObservableCollectionEx<T> : ObservableCollection<T>
 		var itemsList = (List<T>)Items;
 		itemsList.AddRange(collection);
 
-		OnCollectionChanged(new NotifyCollectionChangedEventArgs(
-			action: NotifyCollectionChangedAction.Add,
-			changedItem: itemsList.Last(),
-			index: itemsList.Count - 1));
-	}
+		//OnCollectionChanged(new NotifyCollectionChangedEventArgs(
+		//	action: NotifyCollectionChangedAction.Add,
+		//	changedItem: itemsList.Last(),
+		//	index: itemsList.Count - 1));
+
+        OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+    }
 
 	public void InsertRange(int index, IEnumerable<T> collection)
 	{
