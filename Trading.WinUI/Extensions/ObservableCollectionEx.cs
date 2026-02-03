@@ -7,6 +7,18 @@ namespace Trading.WinUI.Extensions;
 
 public class ObservableCollectionEx<T> : ObservableCollection<T>
 {
+	private int _suppressCount;
+
+	public void BeginUpdate() => _suppressCount++;
+
+	public void EndUpdate()
+	{
+		if (--_suppressCount == 0)
+		{
+			OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+		}
+	}
+
 	public void AddRange(IEnumerable<T> collection)
 	{
 		CheckReentrancy();
@@ -15,11 +27,6 @@ public class ObservableCollectionEx<T> : ObservableCollection<T>
 
 		var itemsList = (List<T>)Items;
 		itemsList.AddRange(collection);
-
-		//OnCollectionChanged(new NotifyCollectionChangedEventArgs(
-		//	action: NotifyCollectionChangedAction.Add,
-		//	changedItem: itemsList.Last(),
-		//	index: itemsList.Count - 1));
 
         OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
     }
@@ -38,4 +45,10 @@ public class ObservableCollectionEx<T> : ObservableCollection<T>
 			changedItem: itemsList.First(),
 			index: index));
 	}
+
+    protected override void OnCollectionChanged(NotifyCollectionChangedEventArgs e)
+    {
+		if (_suppressCount > 0) return;
+        base.OnCollectionChanged(e);
+    }
 }
