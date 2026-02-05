@@ -9,9 +9,9 @@ public class ObservableCollectionEx<T> : ObservableCollection<T>
 {
 	private int _suppressCount;
 
-	public void BeginUpdate() => _suppressCount++;
+	public void PauseUpdate() => _suppressCount++;
 
-	public void EndUpdate()
+	public void ResumeUpdate()
 	{
 		if (--_suppressCount == 0)
 		{
