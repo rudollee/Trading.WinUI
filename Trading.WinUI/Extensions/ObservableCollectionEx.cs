@@ -27,13 +27,24 @@ public class ObservableCollectionEx<T> : ObservableCollection<T>
 
 		if (!collection.Any()) return;
 
+		var oldIndex = Items.Count;
 		var itemsList = (List<T>)Items;
 		itemsList.AddRange(collection);
+		var newIndex = Items.Count;
 
 		var items = collection as IList ?? collection.ToList();
-		
-		OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, changedItems: items));
-    }
+
+		if (collection.Count() > 1)
+		{
+			OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+		}
+		else
+		{
+			OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add,
+				changedItems: items,
+				startingIndex: oldIndex));
+		}
+	}
 
 	public void InsertRange(int index, IEnumerable<T> collection)
 	{
@@ -51,7 +62,35 @@ public class ObservableCollectionEx<T> : ObservableCollection<T>
 			startingIndex: index));
 	}
 
-    protected override void OnCollectionChanged(NotifyCollectionChangedEventArgs e)
+	public void RemoveRange(int index, int count)
+	{
+		if (count <= 0) return;
+		CheckReentrancy();
+
+		var itemsList = (List<T>)Items;
+		if (index < 0 || index + count > itemsList.Count) return;
+
+		var removedItems = itemsList.GetRange(index, count);
+
+		itemsList.RemoveRange(index, count);
+
+		if (_suppressCount <= 0)
+		{
+			try
+			{
+				OnCollectionChanged(new NotifyCollectionChangedEventArgs(
+					NotifyCollectionChangedAction.Remove,
+					changedItems: removedItems,
+					startingIndex: index));
+			}
+			catch (NotSupportedException)
+			{
+				OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+			}
+		}
+	}
+
+	protected override void OnCollectionChanged(NotifyCollectionChangedEventArgs e)
     {
 		if (_suppressCount > 0) return;
         base.OnCollectionChanged(e);
