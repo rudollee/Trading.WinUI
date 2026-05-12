@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Linq;
@@ -29,7 +30,9 @@ public class ObservableCollectionEx<T> : ObservableCollection<T>
 		var itemsList = (List<T>)Items;
 		itemsList.AddRange(collection);
 
-        OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+		var items = collection as IList ?? collection.ToList();
+		
+		OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, changedItems: items));
     }
 
 	public void InsertRange(int index, IEnumerable<T> collection)
@@ -41,7 +44,11 @@ public class ObservableCollectionEx<T> : ObservableCollection<T>
 		var itemsList = (List<T>)Items;
 		itemsList.InsertRange(index, collection);
 
-		OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+		var items = collection as IList ?? collection.ToList();
+
+		OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add,
+			changedItems: items,
+			startingIndex: index));
 	}
 
     protected override void OnCollectionChanged(NotifyCollectionChangedEventArgs e)
