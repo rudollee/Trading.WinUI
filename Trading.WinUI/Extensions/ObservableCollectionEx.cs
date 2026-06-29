@@ -1,7 +1,7 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Linq;
 using System.Threading;
 
@@ -15,10 +15,9 @@ public class ObservableCollectionEx<T> : ObservableCollection<T>
 
 	public void ResumeUpdate()
 	{
-		if (Interlocked.Decrement(ref _suppressCount) == 0)
-		{
-			OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
-		}
+		if (Interlocked.Decrement(ref _suppressCount) != 0) return;
+
+		RaiseCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
 	}
 
 	public void AddRange(IEnumerable<T> collection)
@@ -26,26 +25,24 @@ public class ObservableCollectionEx<T> : ObservableCollection<T>
 		if (collection is null) return;
 		CheckReentrancy();
 
-		var items = collection as IList ?? collection.ToList();
+		var items = collection as IList<T> ?? collection.ToList();
 		if (items.Count == 0) return;
 
 		var oldIndex = Items.Count;
-		var itemsList = (List<T>)Items;
-		itemsList.AddRange((IEnumerable<T>)items);
-
-		if (Volatile.Read(ref _suppressCount) <= 0)
+		foreach (var item in items)
 		{
-			if (items.Count > 1)
-			{
-				OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
-			}
-			else
-			{
-				OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add,
-				  changedItems: items,
-				  startingIndex: oldIndex));
-			}
+			Items.Add(item);
 		}
+
+		if (Volatile.Read(ref _suppressCount) > 0) return;
+
+		if (items.Count > 1)
+		{
+			RaiseCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+			return;
+		}
+
+		RaiseCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, changedItem: items[0], index: oldIndex));
 	}
 
 	public void InsertRange(int index, IEnumerable<T> collection)
@@ -53,20 +50,26 @@ public class ObservableCollectionEx<T> : ObservableCollection<T>
 		if (collection is null) return;
 		CheckReentrancy();
 
-		var items = collection as IList ?? collection.ToList();
+		var items = collection as IList<T> ?? collection.ToList();
 		if (items.Count == 0) return;
 
-		var itemsList = (List<T>)Items;
-		if (index < 0 || index > itemsList.Count) return;
+		if (index < 0 || index > Count) return;
 
-		itemsList.InsertRange(index, collection);
-
-		if (Volatile.Read(ref _suppressCount) <= 0)
+		int currentIndex = index;
+		foreach (var item in items)
 		{
-			OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add,
-				changedItems: items,
-				startingIndex: index));
+			Items.Insert(currentIndex++, item);
 		}
+
+		if (Volatile.Read(ref _suppressCount) > 0) return;
+
+		if (items.Count > 1)
+		{
+			RaiseCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+			return;
+		}
+
+		RaiseCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, changedItem: items[0], index: index));
 	}
 
 	public void RemoveRange(int index, int count)
@@ -74,26 +77,26 @@ public class ObservableCollectionEx<T> : ObservableCollection<T>
 		if (count <= 0) return;
 		CheckReentrancy();
 
-		var itemsList = (List<T>)Items;
-		if (index < 0 || index + count > itemsList.Count) return;
+		if (index < 0 || index + count > Count) return;
 
-		var removedItems = itemsList.GetRange(index, count);
-		itemsList.RemoveRange(index, count);
-
-		if (Volatile.Read(ref _suppressCount) <= 0)
+		var removedItem = Items[index];
+		for (int i = 0; i < count; i++)
 		{
-			try
-			{
-				OnCollectionChanged(new NotifyCollectionChangedEventArgs(
-					NotifyCollectionChangedAction.Remove,
-					changedItems: removedItems,
-					startingIndex: index));
-			}
-			catch (NotSupportedException)
-			{
-				OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
-			}
+			Items.RemoveAt(index);
 		}
+
+		if (Volatile.Read(ref _suppressCount) > 0) return;
+
+		if (count > 0)
+		{
+			RaiseCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+			return;
+		}
+
+		RaiseCollectionChanged(new NotifyCollectionChangedEventArgs(
+			NotifyCollectionChangedAction.Remove,
+			changedItem: removedItem,
+			index: index));
 	}
 
 	protected override void OnCollectionChanged(NotifyCollectionChangedEventArgs e)
@@ -101,4 +104,11 @@ public class ObservableCollectionEx<T> : ObservableCollection<T>
 		if (Volatile.Read(ref _suppressCount) > 0) return;
         base.OnCollectionChanged(e);
     }
+
+	private void RaiseCollectionChanged(NotifyCollectionChangedEventArgs e)
+	{
+		OnCollectionChanged(e);
+		OnPropertyChanged(new PropertyChangedEventArgs(nameof(Count)));
+		OnPropertyChanged(new PropertyChangedEventArgs("Item[]"));
+	}
 }
