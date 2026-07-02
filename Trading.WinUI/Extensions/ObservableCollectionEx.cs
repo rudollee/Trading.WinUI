@@ -21,52 +21,66 @@ public class ObservableCollectionEx<T> : ObservableCollection<T>
 		RaiseCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
 	}
 
-	public void AddRange(IReadOnlyList<T> collection)
+	public void AddRange(IEnumerable<T> collection)
 	{
 		if (collection is null) return;
 		CheckReentrancy();
-		if (collection.Count == 0) return;
+
+		IReadOnlyList<T> list = collection switch
+		{
+			IReadOnlyList<T> readonlyList => readonlyList,
+			_ => [.. collection]
+		};
+
+		if (list.Count == 0) return;
 
 		var oldIndex = Count;
-		for (int i = 0; i < collection.Count; i++)
+		for (int i = 0; i < list.Count; i++)
 		{
-			Items.Add(collection[i]);
+			Items.Add(list[i]);
 		}
 
 		if (Volatile.Read(ref _suppressCount) > 0) return;
 
-		if (collection.Count > 1)
+		if (list.Count > 1)
 		{
 			RaiseCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
 			return;
 		}
 
-		RaiseCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, changedItem: collection[0], index: oldIndex));
+		RaiseCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, changedItem: list[0], index: oldIndex));
 	}
 
-	public void InsertRange(int index, IReadOnlyList<T> collection)
+	public void InsertRange(int index, IEnumerable<T> collection)
 	{
 		if (collection is null) return;
 		CheckReentrancy();
-		if (collection.Count == 0) return;
+
+		IReadOnlyList<T> list = collection switch
+		{
+			IReadOnlyList<T> readonlyList => readonlyList,
+			_ => [.. collection]
+		};
+
+		if (list.Count == 0) return;
 
 		if (index < 0 || index > Count) return;
 
 		int currentIndex = index;
-		for (int i = 0; i < collection.Count; i++)
+		for (int i = 0; i < list.Count; i++)
 		{
-			Items.Insert(currentIndex++, collection[i]);
+			Items.Insert(currentIndex++, list[i]);
 		}
 
 		if (Volatile.Read(ref _suppressCount) > 0) return;
 
-		if (collection.Count > 1)
+		if (list.Count > 1)
 		{
 			RaiseCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
 			return;
 		}
 
-		RaiseCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, changedItem: collection[0], index: index));
+		RaiseCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, changedItem: list[0], index: index));
 	}
 
 	public void RemoveRange(int index, int count)
